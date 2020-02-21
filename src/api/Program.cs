@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace CodeFlip.CodeJar
+namespace CodeFlip.CodeJar.Api
 {
     public class Program
     {

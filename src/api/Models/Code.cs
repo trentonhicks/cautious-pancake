@@ -1,6 +1,6 @@
 using System;
 
-namespace CodeFlip.CodeJar.Models
+namespace CodeFlip.CodeJar.Api.Models
 {
     public class Code
     {

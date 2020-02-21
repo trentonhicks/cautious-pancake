@@ -1,20 +1,12 @@
 ﻿using System;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using CodeFlip.CodeJar.Models;
+using CodeFlip.CodeJar.Api.Models;
 
-namespace CodeFlip.CodeJar.Controllers
+namespace CodeFlip.CodeJar.Api.Controllers
 {
     [ApiController]
     public class CampaginsController : ControllerBase
     {
-        private readonly ILogger<CampaginsController> _logger;
-
-        public CampaginsController(ILogger<CampaginsController> logger)
-        {
-            _logger = logger;
-        }
-
         [HttpGet("campaigns")]
         public IActionResult GetAllCampaigns()
         {
@@ -41,7 +33,7 @@ namespace CodeFlip.CodeJar.Controllers
         }
 
         [HttpDelete("campaigns/{id}")]
-        public IActionResult DeleteCampaign(int id)
+        public IActionResult DeactivateCampaign(int id)
         {
             return Ok();
         }
@@ -59,8 +51,14 @@ namespace CodeFlip.CodeJar.Controllers
             );
         }
 
-        [HttpPut("campaigns/{campaignId}/codes/{code}")]
-        public IActionResult UpdateCode([FromRoute] int campaignId, [FromRoute] string code)
+        [HttpDelete("campaigns/{campaignId}/codes/{code}")]
+        public IActionResult DeactivateCode([FromRoute] int campaignId, [FromRoute] string code)
+        {
+            return Ok();
+        }
+
+        [HttpPost("codes/{code}")]
+        public IActionResult RedeemCode([FromRoute] string code)
         {
             return Ok();
         }
