@@ -235,5 +235,25 @@ namespace CodeFlip.CodeJar.Api.Controllers
             }
             return false;
         }
+
+        public void DeactivateCode(int campaignID, int seedValue)
+        {
+            Connection.Open();
+
+            using(var command = Connection.CreateCommand())
+            {
+                command.CommandText = @"
+                    UPDATE Codes SET [State] = @inactive
+                    WHERE SeedValue = @seedValue
+                    AND [State] = @active
+                ";
+                command.Parameters.AddWithValue("@active", States.Active);
+                command.Parameters.AddWithValue("@inactive", States.Inactive);
+                command.Parameters.AddWithValue("@seedValue", seedValue);
+                command.ExecuteNonQuery();
+            }
+
+            Connection.Close();
+        }
     }
 }
