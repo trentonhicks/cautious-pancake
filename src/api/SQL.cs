@@ -160,5 +160,80 @@ namespace CodeFlip.CodeJar.Api.Controllers
 
             return prevAndNextOffset;
         }
+
+        public bool DeactivateCampaign(int campaignID)
+        {
+            int codesAffected;
+            Connection.Open();
+
+            using(var command = Connection.CreateCommand())
+            {
+                command.CommandText = @"
+                    DECLARE @codeIDStart int
+                    DECLARE @codeIDEnd int
+                    SET @codeIDStart = (SELECT CodeIDStart FROM Campaigns WHERE ID = @campaignID)
+                    SET @codeIDEnd = (SELECT CodeIDEnd FROM Campaigns WHERE ID = @campaignID)
+
+                    UPDATE Codes SET [State] = @inactive
+                    WHERE ID BETWEEN @codeIDStart AND @codeIDEnd
+                    AND [State] = @active
+                ";
+                command.Parameters.AddWithValue("@active", States.Active);
+                command.Parameters.AddWithValue("@inactive", States.Inactive);
+                command.Parameters.AddWithValue("@campaignID", campaignID);
+                codesAffected = command.ExecuteNonQuery();
+            }
+
+            Connection.Close();
+            if(codesAffected >= 1)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        public bool RedeemCode(int seedValue, string email)
+        {
+            var rowsAffected = 0;
+            Connection.Open();
+
+            var transaction = Connection.BeginTransaction();
+            var command = Connection.CreateCommand();
+            command.Transaction = transaction;
+
+            try
+            {
+                command.CommandText = @"
+                    UPDATE Codes SET [State] = @redeemed
+                    WHERE SeedValue = @seedValue
+                    AND [State] = @active
+                ";
+                command.Parameters.AddWithValue("@redeemed", States.Redeemed);
+                command.Parameters.AddWithValue("@active", States.Active);
+                command.Parameters.AddWithValue("@seedValue", seedValue);
+                command.Parameters.AddWithValue("@email", email);
+                rowsAffected = command.ExecuteNonQuery();
+
+                command.CommandText = @"
+                    INSERT INTO RedeemAttempts (CodeSeedValue, Email)
+                    VALUES (@seedValue, @email)
+                ";
+                command.ExecuteNonQuery();
+                transaction.Commit();
+            }
+            catch(Exception e)
+            {
+                transaction.Rollback();
+                return false;
+            }
+
+            Connection.Close();
+
+            if(rowsAffected > 0)
+            {
+                return true;
+            }
+            return false;
+        }
     }
 }

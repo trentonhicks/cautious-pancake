@@ -61,7 +61,14 @@ namespace CodeFlip.CodeJar.Api.Controllers
         [HttpDelete("campaigns/{id}")]
         public IActionResult DeactivateCampaign(int id)
         {
-            return Ok();
+            var sql = new SQL(connectionString: _config.GetConnectionString("Storage"));
+            var batchExists = sql.DeactivateCampaign(id);
+
+            if(batchExists)
+            {
+                return Ok();
+            }
+            return NotFound();
         }
 
         [HttpGet("campaigns/{id}/codes")]
@@ -84,9 +91,18 @@ namespace CodeFlip.CodeJar.Api.Controllers
         }
 
         [HttpPost("codes/{code}")]
-        public IActionResult RedeemCode([FromRoute] string code)
+        public IActionResult RedeemCode([FromRoute] string code, [FromBody] string email)
         {
-            return Ok();
+            var sql = new SQL(connectionString: _config.GetConnectionString("Storage"));
+            var codeConverter = new CodeConverter(_config.GetSection("Base26")["Alphabet"]);
+            var seedValue = codeConverter.ConvertFromCode(code);
+            var isRedeemed = sql.RedeemCode(seedValue, email);
+
+            if(isRedeemed)
+            {
+                return Ok();
+            }
+            return BadRequest();
         }
     }
 }
