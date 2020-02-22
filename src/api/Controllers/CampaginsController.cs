@@ -79,8 +79,9 @@ namespace CodeFlip.CodeJar.Api.Controllers
         [HttpGet("campaigns/{id}/codes")]
         public IActionResult GetCodes([FromRoute] int id, [FromQuery] int page)
         {
-            
-            return Ok();
+            var sql = new SQL(connectionString: _config.GetConnectionString("Storage"));
+            var tableData = sql.GetCodes(id);
+            return Ok(tableData);
         }
 
         [HttpDelete("campaigns/{campaignId}/codes/{code}")]

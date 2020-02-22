@@ -255,5 +255,29 @@ namespace CodeFlip.CodeJar.Api.Controllers
 
             Connection.Close();
         }
+
+        public TableData GetCodes(int campaignID, int pageNumber, int pageSize)
+        {
+            Connection.Open();
+
+            var transaction = Connection.BeginTransaction();
+            var command = Connection.CreateCommand();
+            command.Transaction = transaction;
+
+            try
+            {
+                command.CommandText = @"
+                    DECLARE @campaignSize int
+                    SET @campaignSize = (SELECT [Size] FROM Campaigns WHERE ID = @campaignID)
+                ";
+                transaction.Commit();
+            }
+            catch(Exception e)
+            {
+                transaction.Rollback();
+            }
+
+            Connection.Close();
+        }
     }
 }
