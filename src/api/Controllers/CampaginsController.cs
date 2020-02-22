@@ -1,35 +1,61 @@
 ﻿using System;
 using Microsoft.AspNetCore.Mvc;
 using CodeFlip.CodeJar.Api.Models;
+using Microsoft.Extensions.Configuration;
 
 namespace CodeFlip.CodeJar.Api.Controllers
 {
     [ApiController]
     public class CampaginsController : ControllerBase
     {
+        public CampaginsController(IConfiguration config)
+        {
+            _config = config;
+        }
+
+        private IConfiguration _config;
+
         [HttpGet("campaigns")]
         public IActionResult GetAllCampaigns()
         {
-            return Ok(
-                new []
-                {
-                    new { id = "1", name = "campaign 01", numberOfCodes = "10", dateActive = DateTime.Now, dateExpires = DateTime.Now.AddDays(1) },
-                    new { id = "2", name = "campaign 02", numberOfCodes = "100", dateActive = DateTime.Now.AddDays(1), dateExpires = DateTime.Now.AddDays(2) },
-                    new { id = "3", name = "campaign 03", numberOfCodes = "1000", dateActive = DateTime.Now.AddDays(2), dateExpires = DateTime.Now.AddDays(3) }
-                }
-            );
+            var sql = new SQL(_config.GetConnectionString("Storage"));
+            return Ok(sql.GetAllCampaigns());
         }
 
         [HttpGet("campaigns/{id}")]
         public IActionResult GetCampaign(int id)
         {
-            return Ok(new { id = "1", name = "campaign 01", numberOfCodes = "10", dateActive = DateTime.Now, dateExpires = DateTime.Now.AddDays(1) });
+            var sql = new SQL(_config.GetConnectionString("Storage"));
+            var campaign = sql.GetCampaignByID(id);
+
+            if(campaign == null)
+            {
+                return NotFound();
+            }
+            return Ok(campaign);
         }
 
         [HttpPost("campaigns")]
         public IActionResult CreateCampaign([FromBody] CreateCampaignRequest request)
         {
-            return Ok();
+            var sql = new SQL(connectionString: _config.GetConnectionString("Storage"));
+            var codeReader = new CodeReader(fileUrl: _config.GetSection("FileUrls")["SeedBlobUrl"]);
+
+            var campaign = new Campaign()
+            {
+                Name = request.Name,
+                Size = request.NumberOfCodes
+            };
+
+            // Get the last offset position
+            var prevAndNextOffset = sql.UpdateOffset(campaign.Size);
+
+            // Read from the file
+            var codes = codeReader.GenerateCodesFromFile(prevAndNextOffset);
+
+            // Create the campaign and insert the codes
+            sql.CreateCampaign(campaign, codes);
+            return Ok(campaign);
         }
 
         [HttpDelete("campaigns/{id}")]

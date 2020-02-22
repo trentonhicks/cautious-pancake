@@ -1,0 +1,9 @@
+USE [CautiousPancake]
+GO
+
+CREATE TABLE [Codes] (
+    ID INT PRIMARY KEY IDENTITY(1,1) NOT NULL,
+    [SeedValue] INT UNIQUE NOT NULL,
+    [State] TINYINT NOT NULL
+)
+GO
