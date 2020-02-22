@@ -38,24 +38,29 @@ namespace CodeFlip.CodeJar.Api.Controllers
         [HttpPost("campaigns")]
         public IActionResult CreateCampaign([FromBody] CreateCampaignRequest request)
         {
-            var sql = new SQL(connectionString: _config.GetConnectionString("Storage"));
-            var codeReader = new CodeReader(fileUrl: _config.GetSection("FileUrls")["SeedBlobUrl"]);
-
-            var campaign = new Campaign()
+            if(request.NumberOfCodes >= 1 && request.NumberOfCodes <= 3000)
             {
-                Name = request.Name,
-                Size = request.NumberOfCodes
-            };
+                var sql = new SQL(connectionString: _config.GetConnectionString("Storage"));
+                var codeReader = new CodeReader(fileUrl: _config.GetSection("FileUrls")["SeedBlobUrl"]);
 
-            // Get the last offset position
-            var prevAndNextOffset = sql.UpdateOffset(campaign.Size);
+                var campaign = new Campaign()
+                {
+                    Name = request.Name,
+                    Size = request.NumberOfCodes
+                };
 
-            // Read from the file
-            var codes = codeReader.GenerateCodesFromFile(prevAndNextOffset);
+                // Get the last offset position
+                var prevAndNextOffset = sql.UpdateOffset(campaign.Size);
 
-            // Create the campaign and insert the codes
-            sql.CreateCampaign(campaign, codes);
-            return Ok(campaign);
+                // Read from the file
+                var codes = codeReader.GenerateCodesFromFile(prevAndNextOffset);
+
+                // Create the campaign and insert the codes
+                sql.CreateCampaign(campaign, codes);
+                return Ok(campaign);
+            }
+
+            return BadRequest();
         }
 
         [HttpDelete("campaigns/{id}")]
@@ -74,19 +79,17 @@ namespace CodeFlip.CodeJar.Api.Controllers
         [HttpGet("campaigns/{id}/codes")]
         public IActionResult GetCodes([FromRoute] int id, [FromQuery] int page)
         {
-            return Ok(
-                new
-                {
-                    pageNumber = page,
-                    pageCount = 1,
-                    codes = new[] { new { stringValue = "ASKJSJQ", state = 1 }, new { stringValue = "AWEORJZ", state = 2 }}
-                }
-            );
+            
+            return Ok();
         }
 
         [HttpDelete("campaigns/{campaignId}/codes/{code}")]
         public IActionResult DeactivateCode([FromRoute] int campaignId, [FromRoute] string code)
         {
+            var sql = new SQL(connectionString: _config.GetConnectionString("Storage"));
+            var codeConverter = new CodeConverter(_config.GetSection("Base26")["Alphabet"]);
+            var seedValue = codeConverter.ConvertFromCode(code);
+            sql.DeactivateCode(campaignId, seedValue);
             return Ok();
         }
 
