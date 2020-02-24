@@ -256,8 +256,13 @@ namespace CodeFlip.CodeJar.Api.Controllers
             Connection.Close();
         }
 
-        public TableData GetCodes(int campaignID, int pageNumber, int pageSize)
+        public TableData GetCodes(int campaignID, int pageNumber, int pageSize, CodeConverter codeConverter)
         {
+            int campaignSize = 0;
+            int codeIDStart = 0;
+            int codeIDEnd = 0;
+            var td = new TableData(pageSize, pageNumber);
+            List<Code> codes = new List<Code>();
             Connection.Open();
 
             var transaction = Connection.BeginTransaction();
@@ -266,11 +271,55 @@ namespace CodeFlip.CodeJar.Api.Controllers
 
             try
             {
+                // Get information about the campaign
                 command.CommandText = @"
-                    DECLARE @campaignSize int
-                    SET @campaignSize = (SELECT [Size] FROM Campaigns WHERE ID = @campaignID)
+                    SELECT [Size], CodeIDStart, CodeIDEnd FROM Campaigns
+                    WHERE ID = @campaignID
                 ";
+                command.Parameters.AddWithValue("@campaignID", campaignID);
+                using(var reader = command.ExecuteReader())
+                {
+                    if(reader.Read())
+                    {
+                        campaignSize = (int)reader["Size"];
+                        codeIDStart = (int)reader["CodeIDStart"];
+                        codeIDEnd = (int)reader["CodeIDEnd"];
+                    }
+                }
+
+                // Set page count
+                td.SetPageCount(campaignSize);
+
+                // Get a page of codes from the campaign
+                command.CommandText = @"
+                    SELECT * FROM Codes
+                    WHERE ID BETWEEN @codeIDStart AND @codeIDEnd
+                    ORDER BY ID OFFSET @rowOffset ROWS
+                    FETCH NEXT @pageSize ROWS ONLY
+                ";
+                command.Parameters.AddWithValue("@codeIDStart", codeIDStart);
+                command.Parameters.AddWithValue("@codeIDEnd", codeIDEnd);
+                command.Parameters.AddWithValue("@rowOffset", td.RowOffset);
+                command.Parameters.AddWithValue("@pageSize", pageSize);
+
+                // Read codes
+                using(var reader = command.ExecuteReader())
+                {
+                    while(reader.Read())
+                    {
+                        var code = new Code
+                        {
+                            StringValue = codeConverter.ConvertToCode((int)reader["SeedValue"]),
+                            State = States.ConvertToString((byte)reader["State"])
+                        };
+                        codes.Add(code);
+                    }
+                }
+
                 transaction.Commit();
+
+                // Add codes to the table data
+                td.Codes = codes;
             }
             catch(Exception e)
             {
@@ -278,6 +327,7 @@ namespace CodeFlip.CodeJar.Api.Controllers
             }
 
             Connection.Close();
+            return td;
         }
     }
 }

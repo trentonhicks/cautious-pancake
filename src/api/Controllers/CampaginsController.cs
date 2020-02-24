@@ -80,7 +80,12 @@ namespace CodeFlip.CodeJar.Api.Controllers
         public IActionResult GetCodes([FromRoute] int id, [FromQuery] int page)
         {
             var sql = new SQL(connectionString: _config.GetConnectionString("Storage"));
-            var tableData = sql.GetCodes(id);
+            var codeConverter = new CodeConverter(_config.GetSection("Base26")["Alphabet"]);
+            var tableData = sql.GetCodes(
+                campaignID: id,
+                pageNumber: page,
+                pageSize: Convert.ToInt32(_config.GetSection("Pagination")["PageSize"]),
+                codeConverter: new CodeConverter(_config.GetSection("Base26")["Alphabet"]));
             return Ok(tableData);
         }
 
