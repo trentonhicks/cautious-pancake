@@ -113,5 +113,22 @@ namespace CodeFlip.CodeJar.Api.Controllers
             }
             return BadRequest();
         }
+
+        [HttpGet("codes/{code}")]
+        public IActionResult SearchCode([FromRoute] string code)
+        {
+            var sql = new SQL(connectionString: _config.GetConnectionString("Storage"));
+            var codeConverter = new CodeConverter(_config.GetSection("Base26")["Alphabet"]);
+            var searchedCode = sql.SearchCode(code, codeConverter);
+
+            if(searchedCode == null)
+            {
+                return NotFound();
+            }
+            else
+            {
+                return Ok(searchedCode);
+            }
+        }
     }
 }

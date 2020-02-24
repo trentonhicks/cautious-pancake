@@ -329,5 +329,34 @@ namespace CodeFlip.CodeJar.Api.Controllers
             Connection.Close();
             return td;
         }
+
+        public Code SearchCode(string stringValue, CodeConverter codeConverter)
+        {
+            var code = new Code();
+            var seedValue = codeConverter.ConvertFromCode(stringValue);
+            code.SeedValue = seedValue;
+            code.StringValue = stringValue;
+
+            Connection.Open();
+
+            using(var command = Connection.CreateCommand())
+            {
+                command.CommandText = @"
+                    SELECT [State] FROM Codes
+                    WHERE SeedValue = @seedValue
+                ";
+                command.Parameters.AddWithValue("@seedValue", code.SeedValue);
+                using(var reader = command.ExecuteReader())
+                {
+                    if(reader.Read())
+                    {
+                        code.State = States.ConvertToString((byte)reader["State"]);
+                    }
+                }
+            }
+
+            Connection.Close();
+            return code.State == null ? null : code;
+        }
     }
 }
